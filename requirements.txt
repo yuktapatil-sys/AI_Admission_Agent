@@ -1,5 +1,6 @@
-groq
 streamlit
+groq
+sentence-transformers
 crewai
 litellm
 python-dotenv
