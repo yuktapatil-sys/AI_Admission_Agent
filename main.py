@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -14,206 +13,274 @@ from ingest import (
     retrieve_context,
 )
 
-# Load environment variables
-load_dotenv(
-    dotenv_path=BASE_DIR / ".env",
-    override=True
-)
+# --------------------------------------------------
+# CONFIGURATION
+# --------------------------------------------------
 
-# Streamlit configuration
+load_dotenv(BASE_DIR / ".env", override=True)
+
 st.set_page_config(
-    page_title="Indala College | Admission Assistant",
+    page_title="Indala College | AI Admission Portal",
     page_icon="🎓",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# System instructions
-SYSTEM_PROMPT = """
-You are the admission assistance chatbot for Indala College.
-
-Answer using only the supplied college document excerpts.
-
-If the information is unavailable in the excerpts, clearly say:
-"Sorry, this information is not available in the supplied college documents.
-Please contact the Indala College Admission Office for accurate information."
-
-Do not invent fees, eligibility rules, admission dates, course details
-or contact information.
-
-Do not use outside knowledge or assumptions.
-Use simple, polite, student-friendly language.
-If the excerpts do not support an answer, say the information is unavailable.
-Do not create or guess page numbers or document names.
-"""
-
-# Configuration
 MAX_DISTANCE = float(os.getenv("MAX_DISTANCE", "0.75"))
 TOP_K = int(os.getenv("TOP_K", "5"))
 
 UNAVAILABLE = (
-    "Sorry, this information is not available in the supplied college "
-    "documents. Please contact the Indala College Admission Office "
-    "for accurate information."
+    "Sorry, this information is not available in the supplied "
+    "college documents. Please contact the Indala College "
+    "Admission Office for accurate information."
 )
 
+SYSTEM_PROMPT = """
+You are the official AI admission assistant for Indala College.
+
+Answer using ONLY the supplied college document excerpts.
+
+If information is unavailable, clearly state:
+"Sorry, this information is not available in the supplied
+college documents. Please contact the Indala College
+Admission Office for accurate information."
+
+Do not invent fees, eligibility rules, admission dates,
+course details or contact information.
+
+Do not use outside knowledge or assumptions.
+Use simple, polite and student-friendly language.
+Do not guess document names or page numbers.
+"""
+
 
 # --------------------------------------------------
-# CUSTOM UI DESIGN
+# CUSTOM CSS - MODERN COLLEGE PORTAL
 # --------------------------------------------------
+
 
 st.markdown("""
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Poppins', sans-serif;
-}
-
+/* Main application */
 .stApp {
-    background-color: #f4f7fb;
+    background-color: #f5f8fc;
 }
 
+/* Remove default top spacing */
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
     padding-bottom: 2rem;
-    max-width: 1200px;
+    max-width: 1250px;
 }
 
-/* SIDEBAR */
-
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #142d4e, #203f66);
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: #102b4e;
 }
 
-section[data-testid="stSidebar"] * {
-    color: white;
+[data-testid="stSidebar"] * {
+    color: white !important;
 }
 
-section[data-testid="stSidebar"] .stButton button {
-    background: #294c74;
-    color: white;
-    border: 1px solid #52749b;
+/* Sidebar buttons */
+[data-testid="stSidebar"] .stButton button {
+    background-color: #159B88 !important;
+    color: #ffffff !important;
     border-radius: 9px;
+    border: none !important;
+    font-weight: 700;
+    transition: 0.3s ease;
 }
 
-/* MAIN HEADER */
-
-.header-title {
-    font-size: 32px;
-    font-weight: 800;
-    color: #193b61;
-    margin-bottom: 4px;
+[data-testid="stSidebar"] .stButton button p {
+    color: #ffffff !important;
 }
 
-.header-subtitle {
-    font-size: 14px;
-    color: #718096;
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: #087C70 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
 }
 
-/* WELCOME BANNER */
+/* PDF File Uploader */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] {
+    background-color: #e6f4f1 !important;
+    border: 2px dashed #159B88 !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+}
 
-.welcome-banner {
-    background: linear-gradient(120deg, #173b63, #3979b9);
-    padding: 30px;
-    border-radius: 17px;
+/* File uploader drop area */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section {
+    background-color: #e6f4f1 !important;
+    border: none !important;
+    border-radius: 10px !important;
+}
+
+/* File uploader text */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section,
+[data-testid="stSidebar"] [data-testid="stFileUploader"] section * {
+    color: #102b4e !important;
+}
+
+/* Browse files button */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+    background-color: #159B88 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button p {
+    color: white !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploader"] button:hover {
+    background-color: #087C70 !important;
+}
+
+/* College header */
+.college-header {
+    background: #102b4e;
+    padding: 22px 28px;
+    border-radius: 14px;
     color: white;
-    margin-top: 22px;
     margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.welcome-banner h2 {
-    color: white;
-    font-size: 27px;
+.college-name {
+    font-size: 25px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.college-subtitle {
+    font-size: 13px;
+    color: #d5e5f5;
+    margin-top: 5px;
+}
+
+.header-tag {
+    background: #d9f5ed;
+    color: #087c62;
+    padding: 8px 14px;
+    border-radius: 25px;
+    font-size: 12px;
     font-weight: 700;
 }
 
-.welcome-banner p {
-    color: #e3edf8;
-    font-size: 14px;
-    line-height: 1.8;
+/* Welcome banner */
+.welcome-banner {
+    background: linear-gradient(110deg, #e5f0ff, #e7f8f4);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 25px;
+    border: 1px solid #d9e8f5;
 }
 
-/* INFO CARDS */
+.welcome-title {
+    font-size: 30px;
+    font-weight: 800;
+    color: #102b4e;
+    margin-bottom: 10px;
+}
 
+.welcome-description {
+    color: #53677e;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+/* Section headings */
+.section-heading {
+    color: #102b4e;
+    font-size: 20px;
+    font-weight: 750;
+    margin-top: 18px;
+    margin-bottom: 15px;
+}
+
+/* Information cards */
 .info-card {
     background: white;
-    padding: 20px;
-    border-radius: 13px;
-    border: 1px solid #e2eaf3;
-    min-height: 140px;
-    margin-bottom: 12px;
-}
-
-.info-card h4 {
-    color: #244d77;
-    font-size: 16px;
-}
-
-.info-card p {
-    color: #77869a;
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-/* CHAT MESSAGES */
-
-[data-testid="stChatMessage"] {
-    background: white;
     border: 1px solid #e1e9f2;
-    border-radius: 14px;
+    border-radius: 13px;
+    padding: 20px;
+    min-height: 135px;
+    box-shadow: 0 3px 12px rgba(20, 48, 80, 0.04);
+}
+
+.card-icon {
+    font-size: 27px;
+    margin-bottom: 10px;
+}
+
+.card-title {
+    color: #102b4e;
+    font-size: 16px;
+    font-weight: 750;
+    margin-bottom: 5px;
+}
+
+.card-description {
+    color: #718096;
+    font-size: 12px;
+}
+
+/* Chat area */
+[data-testid="stChatMessage"] {
+    background-color: white;
+    border: 1px solid #e5eaf1;
+    border-radius: 12px;
     padding: 15px;
     margin-bottom: 12px;
 }
 
-/* INPUTS */
-
-.stTextInput input {
-    border-radius: 9px;
+/* Chat input */
+[data-testid="stChatInput"] {
+    background-color: white;
 }
 
-.stChatInput textarea {
-    border-radius: 12px;
-}
-
-/* BUTTONS */
-
+/* General buttons */
 .stButton button {
     border-radius: 9px;
-    min-height: 42px;
+    min-height: 43px;
     font-weight: 600;
+    border-color: #dce5ef;
 }
 
-.stButton button[kind="primary"] {
-    background-color: #28669f;
-    color: white;
-    border: none;
+.stButton button:hover {
+    border-color: #159b88;
+    color: #087c70;
 }
 
-/* METRICS */
-
+/* Metrics */
 [data-testid="stMetric"] {
-    background: white;
+    background-color: white;
     border: 1px solid #e1e9f2;
     padding: 15px;
     border-radius: 12px;
 }
 
-/* FOOTER */
-
+/* Footer */
 .footer {
     text-align: center;
-    padding: 22px;
-    color: #8391a3;
+    color: #718096;
     font-size: 12px;
+    padding: 20px;
+    margin-top: 30px;
+    border-top: 1px solid #e1e9f2;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-
 # --------------------------------------------------
-# GROQ API ANSWER GENERATION
+# GROQ AI RESPONSE
 # --------------------------------------------------
 
 def generate_answer(question, matches):
@@ -222,13 +289,13 @@ def generate_answer(question, matches):
 
     if not api_key:
         raise RuntimeError(
-            "GROQ_API_KEY is missing. "
-            "Please add your Groq API key to the .env file."
+            "GROQ_API_KEY is missing. Check your .env file."
         )
 
     context_parts = []
 
     for item in matches:
+
         context_parts.append(
             f"Source: {item['source']} | Page: {item['page']}\n"
             f"Excerpt: {item['text']}"
@@ -253,10 +320,9 @@ def generate_answer(question, matches):
                 "role": "user",
                 "content": (
                     f"Question: {question}\n\n"
-                    f"Supplied college document excerpts:\n"
-                    f"{context}\n\n"
-                    "Answer only if the excerpts contain enough evidence. "
-                    "Do not use external knowledge."
+                    f"College document excerpts:\n{context}\n\n"
+                    "Answer only using the supplied evidence. "
+                    "If the evidence is insufficient, say so."
                 )
             }
         ]
@@ -266,12 +332,15 @@ def generate_answer(question, matches):
 
 
 # --------------------------------------------------
-# SAVE UPLOADED PDF DOCUMENTS
+# SAVE UPLOADED PDF FILES
 # --------------------------------------------------
 
 def save_uploaded_files(uploaded_files):
 
-    DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+    DOCUMENTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     saved = []
 
@@ -294,70 +363,61 @@ def save_uploaded_files(uploaded_files):
 
 
 # --------------------------------------------------
-# PAGE HEADER
+# COLLEGE HEADER
+# --------------------------------------------------
+
+
+# --------------------------------------------------
+# COLLEGE HEADER
 # --------------------------------------------------
 
 st.markdown("""
-<div class="header-title">
-    🎓 Indala College
+<div class="college-header">
+<div>
+<div class="college-name">🎓 INDALA COLLEGE</div>
+<div class="college-subtitle">AI-Powered Admission Assistance Portal</div>
 </div>
-
-<div class="header-subtitle">
-    Smart AI-Powered Admission Assistance Portal
-</div>
-
-<div class="welcome-banner">
-
-    <h2>Welcome to Indala College!</h2>
-
-    <p>
-        Your intelligent admission assistant is here to help.
-        Ask questions about courses, eligibility, admission
-        procedures, fees and required documents.
-    </p>
-
-    <p>
-        ✨ Get information quickly using our AI-powered
-        college knowledge base.
-    </p>
-
+<div class="header-tag">● ADMISSION ASSISTANT</div>
 </div>
 """, unsafe_allow_html=True)
 
 
+
 # --------------------------------------------------
-# SIDEBAR - DOCUMENT ADMINISTRATION
+# SIDEBAR - ADMINISTRATION
 # --------------------------------------------------
 
 with st.sidebar:
 
     st.markdown("""
-    <div style="text-align:center;padding:15px 5px;">
-
-        <div style="font-size:48px;">🎓</div>
-
-        <h2 style="color:white;font-size:23px;">
+    <div style="text-align:center; padding:15px 5px 25px;">
+        <div style="font-size:42px;">🎓</div>
+        <div style="font-size:21px; font-weight:800;">
             INDALA COLLEGE
-        </h2>
-
-        <p style="font-size:11px;color:#d3e4f5;">
-            AI ADMISSION ASSISTANT
-        </p>
-
+        </div>
+        <div style="font-size:12px; opacity:0.8;">
+            Admission Portal
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
-    st.header("📁 Document Administration")
+    st.markdown("### 🏠 Navigation")
+
+    st.caption("Welcome to the admission assistant.")
+
+    st.divider()
+
+    st.markdown("### 📁 Document Administration")
 
     st.caption(
-        "Upload official college PDF documents "
-        "and add them to the knowledge base."
+        "Upload official college PDFs and process them "
+        "to update the AI knowledge base."
     )
 
     uploaded_files = st.file_uploader(
-        "Choose PDF documents",
+        "Select PDF documents",
         type=["pdf"],
         accept_multiple_files=True
     )
@@ -369,14 +429,14 @@ with st.sidebar:
 
         if not uploaded_files:
 
-            st.warning("Please select at least one PDF.")
+            st.warning("Please select PDF documents first.")
 
         else:
 
             saved = save_uploaded_files(uploaded_files)
 
             st.success(
-                f"Saved {len(saved)} PDF file(s)."
+                f"{len(saved)} PDF file(s) saved successfully."
             )
 
     if st.button(
@@ -388,108 +448,235 @@ with st.sidebar:
         try:
 
             with st.spinner(
-                "Extracting and processing PDF documents..."
+                "Processing college documents..."
             ):
 
                 result = ingest_documents()
 
             st.success(
                 f"Processing complete! "
-                f"{result['stored_chunks']} chunks stored. "
-                f"Database contains "
-                f"{result['collection_count']} chunks."
+                f"{result['stored_chunks']} chunks stored."
             )
 
             if result["skipped_files"]:
 
                 st.warning(
-                    "No selectable text found in: "
+                    "Some PDFs did not contain selectable text: "
                     + ", ".join(result["skipped_files"])
-                    + ". These may be scanned PDFs and need OCR."
                 )
 
         except Exception as exc:
 
-            st.error(f"Processing failed: {exc}")
+            st.error(f"Document processing failed: {exc}")
 
     st.divider()
 
-    st.subheader("📊 Database Status")
+    st.markdown("### 📊 Database Status")
 
     try:
 
-        st.metric(
-            "Stored Text Chunks",
-            get_collection().count()
-        )
+        chunk_count = get_collection().count()
 
     except Exception:
 
-        st.metric("Stored Text Chunks", 0)
+        chunk_count = 0
+
+    st.metric(
+        "Stored Text Chunks",
+        chunk_count
+    )
+
+    st.divider()
+
+    st.markdown("### 🤖 AI Configuration")
+
+    st.write("AI Provider: Groq")
+
+    st.write(
+        "Model: " +
+        os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+    )
+
+    st.divider()
 
     st.caption(
-        "Upload only official college documents."
+        "Upload only official college documents "
+        "authorized for sharing."
     )
 
 
 # --------------------------------------------------
-# ADMISSION INFORMATION CARDS
+# WELCOME BANNER
 # --------------------------------------------------
 
-st.markdown("### Explore Admission Information")
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #e3f2fd, #e0f7f4);
+    padding: 25px;
+    border-radius: 12px;
+    color: #153451;
+">
+    <h2>Welcome to Indala College! 👋</h2>
+    <p>
+        Your AI-powered admission assistant is here to help you
+        explore engineering courses, understand eligibility,
+        and learn about admission procedures.
+    </p>
+    <p>
+        Ask your question below and get answers based on
+        official college documents.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# --------------------------------------------------
+# DASHBOARD METRICS
+# --------------------------------------------------
+
+try:
+    total_chunks = get_collection().count()
+except Exception:
+    total_chunks = 0
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-
-    st.markdown("""
-    <div class="info-card">
-
-        <div style="font-size:32px;">📚</div>
-
-        <h4>Course Information</h4>
-
-        <p>
-            Discover available courses and
-            academic programme details.
-        </p>
-
-    </div>
-    """, unsafe_allow_html=True)
+    st.metric(
+        "📚 Knowledge Base",
+        "Available" if total_chunks > 0 else "Not Processed"
+    )
 
 with col2:
-
-    st.markdown("""
-    <div class="info-card">
-
-        <div style="font-size:32px;">🎯</div>
-
-        <h4>Eligibility Criteria</h4>
-
-        <p>
-            Understand course eligibility
-            using official college documents.
-        </p>
-
-    </div>
-    """, unsafe_allow_html=True)
+    st.metric(
+        "📄 Document Chunks",
+        total_chunks
+    )
 
 with col3:
+    st.metric(
+        "🤖 AI Assistant",
+        "Online"
+    )
+
+
+# --------------------------------------------------
+# QUICK ACCESS CARDS
+# --------------------------------------------------
+
+st.markdown(
+    '<div class="section-heading">Explore Admission Information</div>',
+    unsafe_allow_html=True
+)
+
+card1, card2, card3, card4 = st.columns(4)
+
+with card1:
 
     st.markdown("""
     <div class="info-card">
-
-        <div style="font-size:32px;">📝</div>
-
-        <h4>Admission Process</h4>
-
-        <p>
-            Learn about application procedures
-            and required documents.
-        </p>
-
+        <div class="card-icon">📚</div>
+        <div class="card-title">Courses</div>
+        <div class="card-description">
+            Explore engineering branches and courses.
+        </div>
     </div>
     """, unsafe_allow_html=True)
+
+with card2:
+
+    st.markdown("""
+    <div class="info-card">
+        <div class="card-icon">🎯</div>
+        <div class="card-title">Eligibility</div>
+        <div class="card-description">
+            Understand admission eligibility criteria.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with card3:
+
+    st.markdown("""
+    <div class="info-card">
+        <div class="card-icon">💰</div>
+        <div class="card-title">Fee Structure</div>
+        <div class="card-description">
+            Find available course fee information.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with card4:
+
+    st.markdown("""
+    <div class="info-card">
+        <div class="card-icon">📝</div>
+        <div class="card-title">Admission</div>
+        <div class="card-description">
+            Learn about the admission procedure.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# --------------------------------------------------
+# CHAT SECTION
+# --------------------------------------------------
+
+st.markdown(
+    '<div class="section-heading">💬 Chat with Admission Assistant</div>',
+    unsafe_allow_html=True
+)
+
+st.caption(
+    "Select a suggested question or type your own question."
+)
+
+
+# --------------------------------------------------
+# QUICK QUESTION BUTTONS
+# --------------------------------------------------
+
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
+
+qcol1, qcol2 = st.columns(2)
+
+with qcol1:
+
+    if st.button(
+        "Which engineering courses are available?",
+        use_container_width=True
+    ):
+        st.session_state.pending_question = (
+            "Which engineering courses are available?"
+        )
+
+    if st.button(
+        "What are the eligibility criteria?",
+        use_container_width=True
+    ):
+        st.session_state.pending_question = (
+            "What are the eligibility criteria?"
+        )
+
+with qcol2:
+
+    if st.button(
+        "Which documents are required?",
+        use_container_width=True
+    ):
+        st.session_state.pending_question = (
+            "Which documents are required?"
+        )
+
+    if st.button(
+        "Explain the admission procedure.",
+        use_container_width=True
+    ):
+        st.session_state.pending_question = (
+            "Explain the admission procedure."
+        )
 
 
 # --------------------------------------------------
@@ -497,19 +684,7 @@ with col3:
 # --------------------------------------------------
 
 if "messages" not in st.session_state:
-
     st.session_state.messages = []
-
-
-st.divider()
-
-st.markdown("### 💬 Chat with AI Admission Assistant")
-
-st.caption(
-    "Ask your admission questions below. "
-    "Answers are generated using official college documents."
-)
-
 
 for message in st.session_state.messages:
 
@@ -519,33 +694,43 @@ for message in st.session_state.messages:
 
         if message.get("sources"):
 
-            with st.expander("📄 View Source Documents"):
+            with st.expander("📂 View Source Documents"):
 
                 for source in message["sources"]:
 
                     st.write(
-                        f"**{source['source']}** "
+                        f"📄 **{source['source']}** "
                         f"— Page {source['page']}"
                     )
 
 
 # --------------------------------------------------
-# USER QUESTION AND ANSWER
+# QUESTION INPUT
 # --------------------------------------------------
 
-question = st.chat_input(
-    "Ask about courses, fees, eligibility or admission..."
+typed_question = st.chat_input(
+    "Ask anything about Indala College admissions..."
 )
 
+question = (
+    typed_question
+    if typed_question
+    else st.session_state.pending_question
+)
+
+st.session_state.pending_question = None
+
+
+# --------------------------------------------------
+# GENERATE ANSWER
+# --------------------------------------------------
 
 if question:
 
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": question
-        }
-    )
+    st.session_state.messages.append({
+        "role": "user",
+        "content": question
+    })
 
     with st.chat_message("user"):
 
@@ -578,7 +763,7 @@ if question:
             else:
 
                 with st.spinner(
-                    "🤖 Generating your answer..."
+                    "🤖 Groq AI is preparing your answer..."
                 ):
 
                     answer = generate_answer(
@@ -600,12 +785,10 @@ if question:
 
                         seen.add(key)
 
-                        unique_sources.append(
-                            {
-                                "source": item["source"],
-                                "page": item["page"]
-                            }
-                        )
+                        unique_sources.append({
+                            "source": item["source"],
+                            "page": item["page"]
+                        })
 
                 sources = unique_sources
 
@@ -613,22 +796,22 @@ if question:
 
             if sources:
 
-                with st.expander("📄 View Source Documents"):
+                with st.expander(
+                    "📂 View Source Documents"
+                ):
 
                     for source in sources:
 
                         st.write(
-                            f"**{source['source']}** "
+                            f"📄 **{source['source']}** "
                             f"— Page {source['page']}"
                         )
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": answer,
-                    "sources": sources
-                }
-            )
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer,
+                "sources": sources
+            })
 
         except Exception as exc:
 
@@ -638,13 +821,11 @@ if question:
 
             st.error(error_message)
 
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": error_message,
-                    "sources": []
-                }
-            )
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": error_message,
+                "sources": []
+            })
 
 
 # --------------------------------------------------
@@ -653,21 +834,11 @@ if question:
 
 st.markdown("""
 <div class="footer">
-
-    🎓 <b>Indala College</b>
-
-    <br><br>
-
-    AI-Powered Admission Assistant
-
-    <br>
-
-    Powered by RAG Technology, ChromaDB and Groq AI
-
-    <br><br>
-
-    For official confirmation of admission details,
-    please contact the Indala College Admission Office.
-
+<b>INDALA COLLEGE | AI ADMISSION ASSISTANT</b>
+<br><br>
+Powered by Groq AI · ChromaDB · Streamlit
+<br>
+For official confirmation, please contact the
+Indala College Admission Office.
 </div>
 """, unsafe_allow_html=True)
