@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
-from groq import groq
+from groq import Groq
 
 from ingest import (
     BASE_DIR,
